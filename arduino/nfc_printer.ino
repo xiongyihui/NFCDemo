@@ -1,84 +1,53 @@
-#include <PN532.h>
-#include <NFCLinkLayer.h>
-#include <SNEP.h>
+// NFC Printer
+//
+// Use NFC peer to peer communication
+// The sketch depends on PN532 library(https://github.com/Seeed-Studio/PN532)
+// and NDEF library(https://github.com/don/NDEF)
 
-#include <NdefMessage.h>
 
+#include "SPI.h"
+#include "PN532_SPI.h"
+#include "snep.h"
+#include "NdefMessage.h"
 #include "SoftwareSerial.h"
 
+PN532_SPI pn532spi(SPI, 10);
+SNEP nfc(pn532spi);
+uint8_t ndefBuf[128];
+uint8_t recordBuf[128];
 SoftwareSerial printer(3, 4);
 
-#define SCK 13
-#define MOSI 11
-#define SS 10
-#define MISO 12
-
-PN532 nfc(SCK, MISO, MOSI, SS);
-NFCLinkLayer linkLayer(&nfc);
-SNEP snep(&linkLayer);
-
-// This message shall be used to rx or tx 
-// NDEF messages it shall never be released
-#define MAX_PKT_HEADER_SIZE  50
-#define MAX_PKT_PAYLOAD_SIZE 100
-uint8_t rxNDEFMessage[MAX_PKT_HEADER_SIZE + MAX_PKT_PAYLOAD_SIZE];
-uint8_t *rxNDEFMessagePtr; 
-
-void setup(void) {
-    
+void setup()
+{
     Serial.begin(115200);
-    Serial.println("-------- NFC Printer ---------");
+    Serial.println("-------NFC Printer--------");
     printer.begin(9600);
-    
-    nfc.initializeReader();
-
-    // configure board to read RFID tags and cards
-    nfc.SAMConfig();
 }
 
-void loop(void) 
+void loop()
 {
-    uint32_t rxResult = GEN_ERROR; 
-    rxNDEFMessagePtr = &rxNDEFMessage[0];
-    
-     Serial.println("Peer to peer: as a target");
-     if (IS_ERROR(nfc.configurePeerAsTarget(SNEP_SERVER))) {
-       extern uint8_t pn532_packetbuffer[];
-       
-       while (!nfc.isReady()) {
-       }
-       
-       nfc.readspicommand(PN532_TGINITASTARGET, (PN532_CMD_RESPONSE *)pn532_packetbuffer);
-     }
-    
-    do {
-        rxResult = snep.rxNDEFPayload(rxNDEFMessagePtr);
-        
-        if (rxResult == SEND_COMMAND_RX_TIMEOUT_ERROR)
-        {
-           break;
-        } else if (IS_ERROR(rxResult)) {
-          break;
+
+    Serial.println("Get a message from Android");
+    int msgSize = nfc.read(ndefBuf, sizeof(ndefBuf));
+    if (msgSize > 0) {
+        NdefMessage msg  = NdefMessage(ndefBuf, msgSize);
+        msg.print();
+        Serial.println("\nSuccess");
+
+        NdefRecord record = msg.getRecord(0);
+        record.print();
+        int recordLength = record.getPayloadLength();
+        if (recordLength <= sizeof(recordBuf)) {
+            record.getPayload(recordBuf);
+            printer.write(recordBuf, recordLength);
+            
+            for (int i = 0; i < 5; i++) {
+                printer.write('\n');
+            }
+            delay(2000);
         }
-   
-       
-    
-        if (RESULT_OK(rxResult))
-        {
-           NdefMessage message = NdefMessage(rxNDEFMessagePtr, rxResult);
-           NdefRecord record = message.getRecord(0);
-           record.print();
-           printer.write(record.getPayload(), record.getPayloadLength());
-           
-           for (int i = 0; i < 5; i++) {
-             printer.write('\n');
-           }
-           delay(2500);
-        }
-        
-        delay(500);
-     } while(0);
-     
-     
+    } else {
+        Serial.println("failed");
+    }
+    delay(1000);
 }  
-   
