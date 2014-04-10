@@ -17,7 +17,7 @@ be launched **automatically** and display the conditions of the back box.
 
 ![printer][5]
 
-Want to leave a comment? Just write down the content in your android and touch the header of Paper Man.
+Use your android to touch the header of Paper Man, and send something to Paper Man. The Paper Man will print it out
 
 
 ### How to
@@ -31,4 +31,4 @@ To get started, download the [NFC library][6] for Arduino and follow the example
 [3]: https://raw.github.com/xiongyihui/NFCDemo/master/cat.jpg
 [4]: https://raw.github.com/xiongyihui/NFCDemo/master/app.png
 [5]: https://raw.github.com/xiongyihui/NFCDemo/master/printer.jpg
-[6]: https://github.com/Seeed-Shield/NFC_Shield_DEV
+[6]: https://github.com/Seeed-Studio/PN532
